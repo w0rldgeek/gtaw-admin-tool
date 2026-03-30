@@ -1,0 +1,9 @@
+{
+  "name": "gtaw-admin-tool",
+  "version": "1.0.0",
+  "description": "GTAW RP Admin Tool — Punishment Analysis System",
+  "scripts": {
+    "dev": "npx serve -l 3001 -s",
+    "start": "npx serve -l 3001 -s"
+  }
+}

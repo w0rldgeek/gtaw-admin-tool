@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTAW Admin Tool — Система анализа наказаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Сайдбар -->
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">⚖️</span>
+                <span class="logo-text">Admin Tool</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-group">
+                <div class="nav-group-title">Основное</div>
+                <a class="nav-item active" data-page="search" href="#">
+                    <span class="nav-icon">🔍</span> Поиск игрока
+                </a>
+                <a class="nav-item" data-page="analysis" href="#">
+                    <span class="nav-icon">🧠</span> Анализ нарушений
+                </a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Данные</div>
+                <a class="nav-item" data-page="rules" href="#">
+                    <span class="nav-icon">📋</span> База правил
+                </a>
+                <a class="nav-item" data-page="history" href="#">
+                    <span class="nav-icon">📊</span> История анализов
+                </a>
+                <a class="nav-item" data-page="sync" href="#">
+                    <span class="nav-icon">🔄</span> Синхронизации
+                </a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Система</div>
+                <a class="nav-item" data-page="settings" href="#">
+                    <span class="nav-icon">⚙️</span> Настройки
+                </a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div id="user-info">
+                <span id="user-avatar">👤</span>
+                <span id="user-name">Не авторизован</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Основной контент -->
+    <main id="main-content">
+        <header id="page-header">
+            <h1 id="page-title">Поиск игрока</h1>
+            <div class="header-actions">
+                <span id="connection-status" class="badge badge-warning">Не подключено</span>
+            </div>
+        </header>
+
+        <div id="page-container">
+            <!-- ============================================ -->
+            <!-- СТРАНИЦА: Поиск игрока -->
+            <!-- ============================================ -->
+            <div class="page" id="page-search" style="display:block;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Найти игрока</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="search-form">
+                            <div class="input-group">
+                                <input type="text" id="search-nickname" placeholder="Введите никнейм (Имя Фамилия)" autocomplete="off" />
+                                <button class="btn btn-primary" id="btn-search">Найти</button>
+                                <button class="btn btn-secondary" id="btn-request-parse" title="Отправить запрос Tampermonkey на парсинг">📡 Запросить парсинг</button>
+                            </div>
+                            <div class="search-hint">Формат: латиница, Имя Фамилия. Например: <code>John Smith</code></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Результат поиска — карточка игрока -->
+                <div id="player-card" class="card" style="display:none;">
+                    <div class="card-header">
+                        <h2 id="player-name">—</h2>
+                        <div class="card-actions">
+                            <a id="player-profile-link" href="#" target="_blank" class="btn btn-ghost">Профиль на сайте ↗</a>
+                            <button class="btn btn-secondary" id="btn-quick-analyze">🧠 Быстрый анализ</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="player-meta">
+                            <div class="meta-item">
+                                <span class="meta-label">Сервер</span>
+                                <span class="meta-value" id="player-server">—</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">ID</span>
+                                <span class="meta-value" id="player-id">—</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Синхронизация</span>
+                                <span class="meta-value" id="player-synced">—</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Наказаний</span>
+                                <span class="meta-value" id="player-punishments-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Таблица наказаний -->
+                    <div class="card-section">
+                        <h3>История наказаний</h3>
+                        <div class="table-container">
+                            <table class="data-table" id="punishments-table">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Причина</th>
+                                        <th>Администратор</th>
+                                        <th>Срок</th>
+                                        <th>Тип</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="punishments-tbody">
+                                    <tr><td colspan="5" class="empty-state">Нет данных</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- СТРАНИЦА: Анализ нарушений -->
+            <!-- ============================================ -->
+            <div class="page" id="page-analysis" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Анализ нарушения</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="analysis-form">
+                            <div class="form-group">
+                                <label>Игрок</label>
+                                <div class="input-group">
+                                    <input type="text" id="analysis-player" placeholder="Имя Фамилия" />
+                                    <button class="btn btn-secondary" id="btn-load-player">Загрузить</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Причина текущего нарушения</label>
+                                <textarea id="analysis-reason" rows="3" placeholder="Опишите нарушение, например: DM на парковке"></textarea>
+                            </div>
+                            <button class="btn btn-primary btn-lg" id="btn-analyze">🧠 Анализировать</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Результат анализа -->
+                <div id="analysis-result" class="card" style="display:none;">
+                    <div class="card-header">
+                        <h2>Результат анализа</h2>
+                        <div class="card-actions">
+                            <button class="btn btn-secondary" id="btn-copy-recommendation">📋 Скопировать</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Найденное правило -->
+                        <div class="result-section">
+                            <h3>Сопоставленное правило</h3>
+                            <div class="rule-match" id="matched-rule-card">
+                                <div class="rule-code" id="result-rule-code">—</div>
+                                <div class="rule-title" id="result-rule-title">—</div>
+                                <div class="rule-description" id="result-rule-desc">—</div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" id="result-confidence-fill" style="width: 0%"></div>
+                                    <span class="confidence-text" id="result-confidence-text">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Рекомендация -->
+                        <div class="result-section">
+                            <h3>Рекомендуемое наказание</h3>
+                            <div class="recommendation-box" id="recommendation-box">
+                                <div class="rec-main">
+                                    <span class="rec-term" id="result-rec-term">—</span>
+                                    <span class="rec-badge" id="result-rec-badge">—</span>
+                                </div>
+                                <div class="rec-explanation" id="result-explanation">—</div>
+                            </div>
+                        </div>
+
+                        <!-- Повторность -->
+                        <div class="result-section">
+                            <h3>История похожих нарушений</h3>
+                            <div id="similar-punishments-list" class="similar-list">
+                                <div class="empty-state">Нет похожих нарушений</div>
+                            </div>
+                        </div>
+
+                        <!-- Альтернативные совпадения -->
+                        <div class="result-section">
+                            <h3>Альтернативные совпадения</h3>
+                            <div id="alternatives-list" class="alternatives-list">
+                                <div class="empty-state">Нет альтернатив</div>
+                            </div>
+                        </div>
+
+                        <!-- Ручной выбор правила -->
+                        <div class="result-section">
+                            <h3>Выбрать правило вручную</h3>
+                            <select id="manual-rule-select" class="form-select">
+                                <option value="">— Оставить автоматический выбор —</option>
+                            </select>
+                            <button class="btn btn-secondary" id="btn-apply-manual-rule" style="margin-top:8px;">Применить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- СТРАНИЦА: База правил -->
+            <!-- ============================================ -->
+            <div class="page" id="page-rules" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Правила сервера</h2>
+                        <div class="card-actions">
+                            <input type="text" id="rules-filter" placeholder="Фильтр..." class="input-inline" />
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="rules-table">
+                                <thead>
+                                    <tr>
+                                        <th>Пункт</th>
+                                        <th>Название</th>
+                                        <th>Категория</th>
+                                        <th>1-е нарушение</th>
+                                        <th>Повторное</th>
+                                        <th>Многократное</th>
+                                        <th>Серьёзность</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rules-tbody">
+                                    <tr><td colspan="7" class="empty-state">Загрузка...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Детали правила -->
+                <div id="rule-detail-card" class="card" style="display:none;">
+                    <div class="card-header">
+                        <h2 id="rule-detail-title">—</h2>
+                        <button class="btn btn-ghost" id="btn-close-rule-detail">✕</button>
+                    </div>
+                    <div class="card-body" id="rule-detail-body"></div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- СТРАНИЦА: История анализов -->
+            <!-- ============================================ -->
+            <div class="page" id="page-history" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>История анализов</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Игрок</th>
+                                        <th>Причина</th>
+                                        <th>Правило</th>
+                                        <th>Повторы</th>
+                                        <th>Рекомендация</th>
+                                        <th>Уверенность</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-tbody">
+                                    <tr><td colspan="7" class="empty-state">Загрузка...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- СТРАНИЦА: Синхронизации -->
+            <!-- ============================================ -->
+            <div class="page" id="page-sync" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Журнал синхронизаций</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="sync-table">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Игрок</th>
+                                        <th>Тип</th>
+                                        <th>Статус</th>
+                                        <th>Найдено</th>
+                                        <th>Новых</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sync-tbody">
+                                    <tr><td colspan="6" class="empty-state">Загрузка...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- СТРАНИЦА: Настройки -->
+            <!-- ============================================ -->
+            <div class="page" id="page-settings" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Настройки подключения</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Supabase URL</label>
+                            <input type="text" id="cfg-supabase-url" placeholder="https://xxx.supabase.co" />
+                        </div>
+                        <div class="form-group">
+                            <label>Supabase Anon Key</label>
+                            <input type="text" id="cfg-supabase-key" placeholder="eyJ..." />
+                        </div>
+                        <button class="btn btn-primary" id="btn-save-config">Сохранить и подключиться</button>
+                        <div class="divider"></div>
+                        <div class="form-group">
+                            <label>Авторизация</label>
+                            <div class="auth-section" id="auth-section">
+                                <input type="email" id="auth-email" placeholder="Email" />
+                                <input type="password" id="auth-password" placeholder="Пароль" />
+                                <div class="btn-row">
+                                    <button class="btn btn-primary" id="btn-login">Войти</button>
+                                    <button class="btn btn-secondary" id="btn-login-discord">Discord OAuth</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast уведомления -->
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/analysis.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
