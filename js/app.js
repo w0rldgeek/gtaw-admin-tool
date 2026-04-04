@@ -44,8 +44,8 @@
 
     function initSupabase() {
         const cfg = getConfig();
-        const url = cfg.supabaseUrl || DEFAULT_SUPA_URL;
-        const key = cfg.supabaseKey || DEFAULT_SUPA_KEY;
+        const url = (cfg.supabaseUrl || DEFAULT_SUPA_URL).replace(/\/+$/, '');
+        const key = (cfg.supabaseKey || DEFAULT_SUPA_KEY).trim();
 
         if (!url || !key) {
             setConnectionStatus('warning', 'Не настроено');
@@ -54,7 +54,16 @@
 
         try {
             supabaseClient = window.supabase.createClient(url, key);
-            setConnectionStatus('success', 'Подключено');
+            setConnectionStatus('info', 'Проверка...');
+            // Реальная проверка — пробуем запросить rules
+            supabaseClient.from('rules').select('id', { count: 'exact', head: true }).then(({ error }) => {
+                if (error) {
+                    console.error('Supabase connection test failed:', error);
+                    setConnectionStatus('danger', `Ошибка: ${error.message}`);
+                } else {
+                    setConnectionStatus('success', 'Подключено');
+                }
+            });
             return true;
         } catch (e) {
             console.error('Supabase init error:', e);
@@ -704,7 +713,7 @@
     }
 
     function saveSettings() {
-        const url = document.getElementById('cfg-supabase-url').value.trim();
+        const url = document.getElementById('cfg-supabase-url').value.trim().replace(/\/+$/, '');
         const key = document.getElementById('cfg-supabase-key').value.trim();
 
         saveConfig({ supabaseUrl: url, supabaseKey: key });
