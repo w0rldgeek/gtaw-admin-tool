@@ -349,7 +349,7 @@
         // Рекомендация
         document.getElementById('result-rec-term').textContent = result.recommendedPunishment;
         const badge = document.getElementById('result-rec-badge');
-        const categoryLabels = { first: 'Первое', repeat: 'Повторное', multiple: 'Многократное (3+)', unknown: '?' };
+        const categoryLabels = { first: 'Первое', repeat: 'Второе', multiple: 'Третье', fourth: 'Четвёртое (4+)', unknown: '?' };
         badge.textContent = categoryLabels[result.recommendedCategory] || '?';
         badge.className = `rec-badge ${result.recommendedCategory}`;
 
@@ -507,7 +507,7 @@
     function renderRulesTable(rules) {
         const tbody = document.getElementById('rules-tbody');
         if (!rules || rules.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Правила не загружены</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Правила не загружены</td></tr>';
             return;
         }
 
@@ -519,6 +519,7 @@
                 <td>${escapeHtml(r.base_punishment || '—')}</td>
                 <td>${escapeHtml(r.repeat_punishment || '—')}</td>
                 <td>${escapeHtml(r.multiple_punishment || '—')}</td>
+                <td>${escapeHtml(r.fourth_punishment || '—')}</td>
                 <td>${renderSeverity(r.severity || 1)}</td>
             </tr>
         `).join('');
@@ -570,8 +571,12 @@
                     <span class="value">${escapeHtml(rule.repeat_punishment || '—')} (${rule.repeat_minutes || 0} мин)</span>
                 </div>
                 <div class="rule-detail-item">
-                    <span class="label">Многократное (3+)</span>
+                    <span class="label">Третье нарушение</span>
                     <span class="value">${escapeHtml(rule.multiple_punishment || '—')} (${rule.multiple_minutes || 0} мин)</span>
+                </div>
+                <div class="rule-detail-item">
+                    <span class="label">Четвёртое нарушение</span>
+                    <span class="value">${escapeHtml(rule.fourth_punishment || '—')} (${rule.fourth_minutes || 0} мин)</span>
                 </div>
                 <div class="rule-detail-item">
                     <span class="label">Сервер</span>

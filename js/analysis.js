@@ -346,11 +346,17 @@ const AnalysisEngine = (() => {
                 minutes: rule.repeat_minutes || rule.base_minutes || 0,
                 category: 'repeat',
             };
-        } else {
+        } else if (repeatCount === 2) {
             return {
                 term: rule.multiple_punishment || rule.repeat_punishment || rule.base_punishment || 'Не указано',
                 minutes: rule.multiple_minutes || rule.repeat_minutes || rule.base_minutes || 0,
                 category: 'multiple',
+            };
+        } else {
+            return {
+                term: rule.fourth_punishment || rule.multiple_punishment || rule.repeat_punishment || rule.base_punishment || 'Не указано',
+                minutes: rule.fourth_minutes || rule.multiple_minutes || rule.repeat_minutes || rule.base_minutes || 0,
+                category: 'fourth',
             };
         }
     }
@@ -401,8 +407,9 @@ const AnalysisEngine = (() => {
         lines.push(`Рекомендуемое наказание: ${recommendation.term}`);
         const categoryLabels = {
             first: 'Первое нарушение',
-            repeat: 'Повторное нарушение',
-            multiple: 'Многократное нарушение (3+)',
+            repeat: 'Второе нарушение',
+            multiple: 'Третье нарушение',
+            fourth: 'Четвёртое нарушение (4+)',
             unknown: 'Не определено',
         };
         lines.push(`Категория: ${categoryLabels[recommendation.category] || recommendation.category}`);

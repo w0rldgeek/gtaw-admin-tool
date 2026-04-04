@@ -71,8 +71,10 @@ CREATE TABLE IF NOT EXISTS rules (
     base_minutes        INTEGER,                             -- В минутах
     repeat_punishment   TEXT,                                -- Срок за повторное
     repeat_minutes      INTEGER,
-    multiple_punishment TEXT,                                -- Срок за многократное (3+)
+    multiple_punishment TEXT,                                -- Срок за многократное (3-е нарушение)
     multiple_minutes    INTEGER,
+    fourth_punishment   TEXT,                                -- Срок за 4-е нарушение
+    fourth_minutes      INTEGER,
     keywords            TEXT[] DEFAULT '{}',                  -- Ключевые слова для поиска
     aliases             TEXT[] DEFAULT '{}',                  -- Алиасы / альтернативные названия
     examples            TEXT[] DEFAULT '{}',                  -- Примеры формулировок причин
