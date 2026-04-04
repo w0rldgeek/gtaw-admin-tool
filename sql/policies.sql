@@ -56,6 +56,11 @@ CREATE POLICY "rules_select_authenticated"
     TO authenticated
     USING (true);
 
+CREATE POLICY "rules_select_anon"
+    ON rules FOR SELECT
+    TO anon
+    USING (true);
+
 -- Для записи правил — только admin
 CREATE POLICY "rules_insert_admin"
     ON rules FOR INSERT
