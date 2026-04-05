@@ -19,14 +19,29 @@ CREATE POLICY "players_select_authenticated"
     TO authenticated
     USING (true);
 
+CREATE POLICY "players_select_anon"
+    ON players FOR SELECT
+    TO anon
+    USING (true);
+
 CREATE POLICY "players_insert_authenticated"
     ON players FOR INSERT
     TO authenticated
     WITH CHECK (true);
 
+CREATE POLICY "players_insert_anon"
+    ON players FOR INSERT
+    TO anon
+    WITH CHECK (true);
+
 CREATE POLICY "players_update_authenticated"
     ON players FOR UPDATE
     TO authenticated
+    USING (true);
+
+CREATE POLICY "players_update_anon"
+    ON players FOR UPDATE
+    TO anon
     USING (true);
 
 -- ============================================================
@@ -37,14 +52,29 @@ CREATE POLICY "punishments_select_authenticated"
     TO authenticated
     USING (true);
 
+CREATE POLICY "punishments_select_anon"
+    ON punishments FOR SELECT
+    TO anon
+    USING (true);
+
 CREATE POLICY "punishments_insert_authenticated"
     ON punishments FOR INSERT
     TO authenticated
     WITH CHECK (true);
 
+CREATE POLICY "punishments_insert_anon"
+    ON punishments FOR INSERT
+    TO anon
+    WITH CHECK (true);
+
 CREATE POLICY "punishments_update_authenticated"
     ON punishments FOR UPDATE
     TO authenticated
+    USING (true);
+
+CREATE POLICY "punishments_update_anon"
+    ON punishments FOR UPDATE
+    TO anon
     USING (true);
 
 -- ============================================================
@@ -135,10 +165,20 @@ CREATE POLICY "parse_requests_select_authenticated"
     TO authenticated
     USING (true);
 
+CREATE POLICY "parse_requests_select_anon"
+    ON parse_requests FOR SELECT
+    TO anon
+    USING (true);
+
 CREATE POLICY "parse_requests_insert_authenticated"
     ON parse_requests FOR INSERT
     TO authenticated
     WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "parse_requests_insert_anon"
+    ON parse_requests FOR INSERT
+    TO anon
+    WITH CHECK (true);
 
 CREATE POLICY "parse_requests_update_authenticated"
     ON parse_requests FOR UPDATE

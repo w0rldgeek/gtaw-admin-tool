@@ -53,13 +53,16 @@
         }
 
         try {
+            console.log('Supabase init:', { url, keyLength: key.length, keyStart: key.substring(0, 20), keyEnd: key.substring(key.length - 10) });
             supabaseClient = window.supabase.createClient(url, key);
             setConnectionStatus('info', 'Проверка...');
             // Реальная проверка — пробуем запросить rules
-            supabaseClient.from('rules').select('id', { count: 'exact', head: true }).then(({ error }) => {
+            supabaseClient.from('rules').select('id', { count: 'exact', head: true }).then(({ data, error, status }) => {
+                console.log('Supabase test:', { data, error, status });
                 if (error) {
+                    const msg = error.message || error.hint || error.code || JSON.stringify(error);
                     console.error('Supabase connection test failed:', error);
-                    setConnectionStatus('danger', `Ошибка: ${error.message}`);
+                    setConnectionStatus('danger', `Ошибка: ${msg}`);
                 } else {
                     setConnectionStatus('success', 'Подключено');
                 }
@@ -114,6 +117,7 @@
         const titles = {
             search: 'Поиск игрока',
             analysis: 'Анализ нарушений',
+            accounts: 'UCP Аккаунты',
             rules: 'База правил',
             history: 'История анализов',
             sync: 'Синхронизации',
@@ -122,6 +126,7 @@
         document.getElementById('page-title').textContent = titles[page] || page;
 
         // Загружаем данные для страницы
+        if (page === 'accounts') loadAccounts();
         if (page === 'rules') loadRules();
         if (page === 'history') loadHistory();
         if (page === 'sync') loadSyncLog();
@@ -703,6 +708,217 @@
     }
 
     // ============================================================
+    // UCP ACCOUNTS
+    // ============================================================
+
+    async function loadAccounts() {
+        if (!supabaseClient) return;
+        try {
+            // Проверяем pending
+            const { count } = await supabaseClient
+                .from('parsed_profiles')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'pending');
+
+            const badge = document.getElementById('pending-badge');
+            if (count > 0) {
+                badge.textContent = `${count} новых`;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            // Загружаем игроков с персонажами
+            const { data: players, error } = await supabaseClient
+                .from('players')
+                .select('*, characters(*)')
+                .order('updated_at', { ascending: false });
+
+            if (error) throw error;
+
+            // Для каждого игрока подсчитаем наказания
+            const grid = document.getElementById('accounts-grid');
+            const empty = document.getElementById('accounts-empty');
+
+            if (!players || players.length === 0) {
+                grid.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            grid.innerHTML = players.map(p => {
+                const chars = p.characters || [];
+                const activeChars = chars.filter(c => c.is_active);
+                const inactiveChars = chars.filter(c => !c.is_active);
+                const charHTML = activeChars.map(c =>
+                    `<span class="char-tag active">${c.character_name}</span>`
+                ).concat(inactiveChars.map(c =>
+                    `<span class="char-tag inactive">${c.character_name}</span>`
+                )).join('') || '<span class="char-tag none">Нет данных</span>';
+
+                return `
+                    <div class="account-card" data-player-id="${p.id}">
+                        <div class="account-card-header">
+                            <span class="account-nickname">${p.nickname}</span>
+                            <span class="account-id">#${p.external_id || '?'}</span>
+                        </div>
+                        <div class="account-chars">${charHTML}</div>
+                        <div class="account-meta">
+                            <span>Сервер: ${p.server_name || 'main'}</span>
+                            <span>${p.last_synced_at ? new Date(p.last_synced_at).toLocaleDateString() : '—'}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Click handlers
+            grid.querySelectorAll('.account-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const playerId = card.dataset.playerId;
+                    const player = players.find(p => String(p.id) === playerId);
+                    if (player) openAccountDetail(player);
+                });
+            });
+
+        } catch (e) {
+            console.error('Error loading accounts:', e);
+            toast('Ошибка загрузки аккаунтов', 'error');
+        }
+    }
+
+    async function openAccountDetail(player) {
+        const detail = document.getElementById('account-detail');
+        detail.style.display = 'block';
+        document.getElementById('account-detail-name').textContent = player.nickname;
+        document.getElementById('account-detail-link').href = player.profile_url || '#';
+
+        // Персонажи
+        const chars = player.characters || [];
+        const charsDiv = document.getElementById('account-characters');
+        if (chars.length > 0) {
+            charsDiv.innerHTML = '<h3>Персонажи</h3><div class="chars-list">' +
+                chars.map(c => `
+                    <div class="char-item ${c.is_active ? 'active' : 'inactive'}">
+                        <span class="char-dot"></span>
+                        <span class="char-name">${c.character_name}</span>
+                        <span class="char-status">${c.is_active ? 'Активен' : 'Неактивен'}</span>
+                    </div>
+                `).join('') + '</div>';
+        } else {
+            charsDiv.innerHTML = '<p style="color:#64748b;">Персонажи не загружены</p>';
+        }
+
+        // Наказания
+        try {
+            const { data: punishments } = await supabaseClient
+                .from('punishments')
+                .select('*')
+                .eq('player_id', player.id)
+                .order('punishment_date', { ascending: false });
+
+            const tbody = document.getElementById('account-punishments-tbody');
+            if (punishments && punishments.length > 0) {
+                const typeLabels = { ajail: 'Тюрьма', ban: 'Бан', warn: 'Варн', kick: 'Кик' };
+                tbody.innerHTML = punishments.map(p => `
+                    <tr>
+                        <td><span class="badge badge-${p.punishment_type === 'ban' ? 'danger' : p.punishment_type === 'warn' ? 'warning' : 'info'}">${typeLabels[p.punishment_type] || p.punishment_type}</span></td>
+                        <td>${p.reason_raw || '—'}</td>
+                        <td>${p.admin_name || '—'}</td>
+                        <td>${p.punishment_term_raw || '—'}</td>
+                        <td>${p.punishment_date ? new Date(p.punishment_date).toLocaleDateString() : '—'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Нет наказаний</td></tr>';
+            }
+        } catch (e) {
+            console.error('Error loading punishments:', e);
+        }
+
+        detail.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function processPendingProfiles() {
+        if (!supabaseClient) {
+            toast('Supabase не настроен', 'error');
+            return;
+        }
+
+        toast('Обработка новых профилей...', 'info');
+
+        try {
+            const { data: pending, error } = await supabaseClient
+                .from('parsed_profiles')
+                .select('*')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+            if (!pending || pending.length === 0) {
+                toast('Нет новых профилей для обработки', 'info');
+                return;
+            }
+
+            let processed = 0;
+            for (const profile of pending) {
+                try {
+                    const raw = profile.raw_data;
+                    const punishments = raw.punishments || [];
+                    const characters = raw.characters || [];
+
+                    // Upsert через RPC (работает из SDK надёжно)
+                    const { data: rpcResult, error: rpcErr } = await supabaseClient.rpc('bulk_upsert_punishments', {
+                        p_player_nickname: profile.nickname,
+                        p_server_name: profile.server_name || 'main',
+                        p_profile_url: profile.profile_url,
+                        p_external_id: profile.external_id,
+                        p_punishments: punishments,
+                    });
+
+                    if (rpcErr) throw rpcErr;
+
+                    // Upsert персонажей
+                    const playerId = rpcResult?.player_id;
+                    if (playerId && characters.length > 0) {
+                        for (const ch of characters) {
+                            await supabaseClient
+                                .from('characters')
+                                .upsert({
+                                    player_id: playerId,
+                                    character_name: ch.character_name,
+                                    character_id: ch.character_id || null,
+                                    is_active: ch.is_active,
+                                }, { onConflict: 'player_id,character_name' });
+                        }
+                    }
+
+                    // Отметить как обработанный
+                    await supabaseClient
+                        .from('parsed_profiles')
+                        .update({ status: 'processed', processed_at: new Date().toISOString() })
+                        .eq('id', profile.id);
+
+                    processed++;
+                } catch (e) {
+                    console.error(`Error processing profile ${profile.nickname}:`, e);
+                    await supabaseClient
+                        .from('parsed_profiles')
+                        .update({ status: 'error', error_message: e.message })
+                        .eq('id', profile.id);
+                }
+            }
+
+            toast(`Обработано ${processed} из ${pending.length} профилей`, 'success');
+            loadAccounts();
+
+        } catch (e) {
+            console.error('Error processing pending:', e);
+            toast(`Ошибка обработки: ${e.message}`, 'error');
+        }
+    }
+
+    // ============================================================
     // SETTINGS
     // ============================================================
 
@@ -870,6 +1086,12 @@
         // Rule detail close
         document.getElementById('btn-close-rule-detail').addEventListener('click', () => {
             document.getElementById('rule-detail-card').style.display = 'none';
+        });
+
+        // Accounts
+        document.getElementById('btn-process-pending').addEventListener('click', processPendingProfiles);
+        document.getElementById('btn-close-detail').addEventListener('click', () => {
+            document.getElementById('account-detail').style.display = 'none';
         });
 
         // Settings

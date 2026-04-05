@@ -29,6 +29,9 @@
             </div>
             <div class="nav-group">
                 <div class="nav-group-title">Данные</div>
+                <a class="nav-item" data-page="accounts" href="#">
+                    <span class="nav-icon">👥</span> UCP Аккаунты
+                </a>
                 <a class="nav-item" data-page="rules" href="#">
                     <span class="nav-icon">📋</span> База правил
                 </a>
@@ -222,6 +225,54 @@
                             </select>
                             <button class="btn btn-secondary" id="btn-apply-manual-rule" style="margin-top:8px;">Применить</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- СТРАНИЦА: UCP Аккаунты -->
+            <!-- ============================================ -->
+            <div class="page" id="page-accounts" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>UCP Аккаунты</h2>
+                        <div class="card-actions">
+                            <span id="pending-badge" class="badge badge-warning" style="display:none;"></span>
+                            <button class="btn btn-primary btn-sm" id="btn-process-pending">Обработать новые</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="accounts-grid" class="accounts-grid"></div>
+                        <div id="accounts-empty" class="empty-state" style="display:none;">
+                            Нет спаршенных аккаунтов. Используйте Tampermonkey для парсинга профилей с UCP.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Детали аккаунта -->
+                <div class="card" id="account-detail" style="display:none;">
+                    <div class="card-header">
+                        <h2 id="account-detail-name"></h2>
+                        <div class="card-actions">
+                            <a id="account-detail-link" href="#" target="_blank" class="btn btn-sm">Открыть на UCP</a>
+                            <button class="btn btn-sm" id="btn-close-detail">Закрыть</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="account-characters"></div>
+                        <h3 style="margin-top: 16px;">Наказания</h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Тип</th>
+                                    <th>Причина</th>
+                                    <th>Админ</th>
+                                    <th>Срок</th>
+                                    <th>Дата</th>
+                                </tr>
+                            </thead>
+                            <tbody id="account-punishments-tbody"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
