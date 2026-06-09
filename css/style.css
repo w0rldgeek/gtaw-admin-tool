@@ -1018,3 +1018,84 @@ textarea { resize: vertical; min-height: 80px; }
     font-size: 11px;
     color: var(--text-muted);
 }
+
+/* ============================================================
+   SUBSCRIBERS — Актуализация номеров абонентов
+   ============================================================ */
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+/* Форма добавления */
+.subscriber-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr 150px 1fr;
+    gap: 14px;
+    align-items: end;
+}
+
+.subscriber-form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.subscriber-form-actions .input-inline {
+    flex: 1;
+    min-width: 220px;
+}
+
+@media (max-width: 900px) {
+    .subscriber-form { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+    .subscriber-form { grid-template-columns: 1fr; }
+}
+
+/* Карточка месяца — цветная шапка + левая полоса */
+.month-card {
+    border-left: 4px solid var(--month-color, var(--accent));
+}
+
+.month-card-header {
+    background: var(--month-bg, var(--accent-bg));
+    border-bottom: 1px solid var(--border);
+}
+
+.month-card-header h2 {
+    color: var(--month-color, var(--accent));
+}
+
+.month-badge {
+    background: var(--month-color, var(--accent));
+    color: #0f0f1a;
+    font-weight: 700;
+}
+
+.subscribers-table td.sub-actions {
+    text-align: center;
+}
+
+.sub-delete {
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
+}
+.sub-delete:hover { opacity: 1; }
+
+/* Палитра 12 месяцев (Январь = 0 ... Декабрь = 11) */
+.month-0  { --month-color: #60a5fa; --month-bg: rgba(96, 165, 250, 0.12); } /* Январь  */
+.month-1  { --month-color: #22d3ee; --month-bg: rgba(34, 211, 238, 0.12); } /* Февраль */
+.month-2  { --month-color: #34d399; --month-bg: rgba(52, 211, 153, 0.12); } /* Март    */
+.month-3  { --month-color: #a3e635; --month-bg: rgba(163, 230, 53, 0.12); } /* Апрель  */
+.month-4  { --month-color: #facc15; --month-bg: rgba(250, 204, 21, 0.12); } /* Май     */
+.month-5  { --month-color: #fb923c; --month-bg: rgba(251, 146, 60, 0.12); } /* Июнь    */
+.month-6  { --month-color: #f87171; --month-bg: rgba(248, 113, 113, 0.12); } /* Июль   */
+.month-7  { --month-color: #f472b6; --month-bg: rgba(244, 114, 182, 0.12); } /* Август */
+.month-8  { --month-color: #e879f9; --month-bg: rgba(232, 121, 249, 0.12); } /* Сентябрь */
+.month-9  { --month-color: #c084fc; --month-bg: rgba(192, 132, 252, 0.12); } /* Октябрь */
+.month-10 { --month-color: #818cf8; --month-bg: rgba(129, 140, 248, 0.12); } /* Ноябрь */
+.month-11 { --month-color: #38bdf8; --month-bg: rgba(56, 189, 248, 0.12); } /* Декабрь */

@@ -26,6 +26,7 @@
     let cachedRules = [];
     let currentPlayer = null;
     let currentPunishments = [];
+    let cachedSubscribers = [];
 
     // ============================================================
     // SUPABASE INIT
@@ -118,6 +119,7 @@
             search: 'Поиск игрока',
             analysis: 'Анализ нарушений',
             accounts: 'UCP Аккаунты',
+            subscribers: 'Абоненты — актуализация номеров',
             rules: 'База правил',
             history: 'История анализов',
             sync: 'Синхронизации',
@@ -127,6 +129,7 @@
 
         // Загружаем данные для страницы
         if (page === 'accounts') loadAccounts();
+        if (page === 'subscribers') loadSubscribers();
         if (page === 'rules') loadRules();
         if (page === 'history') loadHistory();
         if (page === 'sync') loadSyncLog();
@@ -919,6 +922,193 @@
     }
 
     // ============================================================
+    // SUBSCRIBERS — Актуализация номеров абонентов
+    // (онлайн-таблица: адрес, логин, дата, номер; группировка по месяцам)
+    // ============================================================
+
+    const MONTH_NAMES = [
+        'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+    ];
+
+    async function loadSubscribers() {
+        // Предзаполняем дату сегодняшним числом, если поле пустое
+        const dateInput = document.getElementById('sub-date');
+        if (dateInput && !dateInput.value) {
+            dateInput.value = new Date().toISOString().slice(0, 10);
+        }
+
+        if (!supabaseClient) {
+            toast('Supabase не настроен', 'error');
+            return;
+        }
+        try {
+            const { data, error } = await supabaseClient
+                .from('subscribers')
+                .select('*')
+                .order('subscription_date', { ascending: false })
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            cachedSubscribers = data || [];
+            renderSubscribers();
+        } catch (e) {
+            console.error('Error loading subscribers:', e);
+            toast(`Ошибка загрузки абонентов: ${e.message}`, 'error');
+            document.getElementById('subscribers-container').innerHTML =
+                '<div class="empty-state">Не удалось загрузить данные</div>';
+        }
+    }
+
+    async function addSubscriber() {
+        if (!supabaseClient) {
+            toast('Supabase не настроен', 'error');
+            return;
+        }
+
+        const address = document.getElementById('sub-address').value.trim();
+        const login = document.getElementById('sub-login').value.trim();
+        const phone = document.getElementById('sub-phone').value.trim();
+        let date = document.getElementById('sub-date').value;
+
+        if (!address || !login || !phone) {
+            toast('Заполните адрес, логин и номер телефона', 'warning');
+            return;
+        }
+        if (!date) date = new Date().toISOString().slice(0, 10);
+
+        try {
+            const { error } = await supabaseClient
+                .from('subscribers')
+                .insert({
+                    address,
+                    login,
+                    phone_number: phone,
+                    subscription_date: date,
+                    user_id: currentUser?.id || null,
+                });
+
+            if (error) throw error;
+
+            toast('Абонент добавлен', 'success');
+            // Очищаем поля (дату оставляем для серии записей)
+            document.getElementById('sub-address').value = '';
+            document.getElementById('sub-login').value = '';
+            document.getElementById('sub-phone').value = '';
+            document.getElementById('sub-address').focus();
+
+            await loadSubscribers();
+        } catch (e) {
+            console.error('Error adding subscriber:', e);
+            toast(`Ошибка добавления: ${e.message}`, 'error');
+        }
+    }
+
+    async function deleteSubscriber(id) {
+        if (!supabaseClient) return;
+        if (!confirm('Удалить запись абонента?')) return;
+        try {
+            const { error } = await supabaseClient
+                .from('subscribers')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            toast('Запись удалена', 'success');
+            await loadSubscribers();
+        } catch (e) {
+            console.error('Error deleting subscriber:', e);
+            toast(`Ошибка удаления: ${e.message}`, 'error');
+        }
+    }
+
+    function renderSubscribers() {
+        const container = document.getElementById('subscribers-container');
+        const countBadge = document.getElementById('subscribers-count');
+        const filter = (document.getElementById('subscribers-filter').value || '').trim().toLowerCase();
+
+        let rows = cachedSubscribers;
+        if (filter) {
+            rows = rows.filter(s =>
+                (s.address || '').toLowerCase().includes(filter) ||
+                (s.login || '').toLowerCase().includes(filter) ||
+                (s.phone_number || '').toLowerCase().includes(filter)
+            );
+        }
+
+        countBadge.textContent = `${cachedSubscribers.length} записей`;
+
+        if (rows.length === 0) {
+            container.innerHTML = `<div class="card"><div class="card-body"><div class="empty-state">${
+                cachedSubscribers.length === 0
+                    ? 'Нет абонентов. Добавьте первую запись через форму выше.'
+                    : 'Ничего не найдено по фильтру.'
+            }</div></div></div>`;
+            return;
+        }
+
+        // Группируем по месяцу (ключ YYYY-MM, по дате подписки)
+        const groups = new Map();
+        for (const s of rows) {
+            const d = s.subscription_date ? new Date(s.subscription_date) : new Date(s.created_at);
+            const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
+            if (!groups.has(key)) {
+                groups.set(key, { year: d.getFullYear(), month: d.getMonth(), items: [] });
+            }
+            groups.get(key).items.push(s);
+        }
+
+        // Сортируем месяцы по убыванию (новые сверху)
+        const sortedKeys = Array.from(groups.keys()).sort().reverse();
+
+        container.innerHTML = sortedKeys.map(key => {
+            const g = groups.get(key);
+            const monthClass = `month-${g.month}`;
+            const monthLabel = `${MONTH_NAMES[g.month]} ${g.year}`;
+
+            const rowsHtml = g.items.map(s => `
+                <tr>
+                    <td>${s.subscription_date ? new Date(s.subscription_date).toLocaleDateString('ru-RU') : '—'}</td>
+                    <td>${escapeHtml(s.address || '—')}</td>
+                    <td>${escapeHtml(s.login || '—')}</td>
+                    <td><strong>${escapeHtml(s.phone_number || '—')}</strong></td>
+                    <td class="sub-actions">
+                        <button class="btn btn-ghost btn-sm sub-delete" data-id="${s.id}" title="Удалить">🗑</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            return `
+                <div class="card month-card ${monthClass}">
+                    <div class="card-header month-card-header">
+                        <h2>${monthLabel}</h2>
+                        <span class="badge month-badge">${g.items.length}</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table subscribers-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:120px;">Дата</th>
+                                    <th>Адрес</th>
+                                    <th>Логин</th>
+                                    <th style="width:160px;">Номер телефона</th>
+                                    <th style="width:60px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Навешиваем обработчики удаления
+        container.querySelectorAll('.sub-delete').forEach(btn => {
+            btn.addEventListener('click', () => deleteSubscriber(parseInt(btn.dataset.id, 10)));
+        });
+    }
+
+    // ============================================================
     // SETTINGS
     // ============================================================
 
@@ -1092,6 +1282,15 @@
         document.getElementById('btn-process-pending').addEventListener('click', processPendingProfiles);
         document.getElementById('btn-close-detail').addEventListener('click', () => {
             document.getElementById('account-detail').style.display = 'none';
+        });
+
+        // Subscribers
+        document.getElementById('btn-add-subscriber').addEventListener('click', addSubscriber);
+        document.getElementById('subscribers-filter').addEventListener('input', renderSubscribers);
+        ['sub-address', 'sub-login', 'sub-phone'].forEach(id => {
+            document.getElementById(id).addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') addSubscriber();
+            });
         });
 
         // Settings
