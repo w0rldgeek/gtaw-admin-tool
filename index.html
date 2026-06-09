@@ -32,6 +32,9 @@
                 <a class="nav-item" data-page="accounts" href="#">
                     <span class="nav-icon">👥</span> UCP Аккаунты
                 </a>
+                <a class="nav-item" data-page="subscribers" href="#">
+                    <span class="nav-icon">📇</span> Абоненты
+                </a>
                 <a class="nav-item" data-page="rules" href="#">
                     <span class="nav-icon">📋</span> База правил
                 </a>
@@ -274,6 +277,50 @@
                             <tbody id="account-punishments-tbody"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- СТРАНИЦА: Абоненты (актуализация номеров) -->
+            <!-- ============================================ -->
+            <div class="page" id="page-subscribers" style="display:none;">
+                <!-- Форма добавления абонента -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Добавить абонента</h2>
+                        <div class="card-actions">
+                            <span id="subscribers-count" class="badge badge-neutral">0 записей</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="subscriber-form">
+                            <div class="form-group">
+                                <label>Адрес</label>
+                                <input type="text" id="sub-address" placeholder="Например: Vinewood Blvd, 12" autocomplete="off" />
+                            </div>
+                            <div class="form-group">
+                                <label>Логин</label>
+                                <input type="text" id="sub-login" placeholder="Логин абонента" autocomplete="off" />
+                            </div>
+                            <div class="form-group">
+                                <label>Дата</label>
+                                <input type="date" id="sub-date" />
+                            </div>
+                            <div class="form-group">
+                                <label>Номер телефона</label>
+                                <input type="text" id="sub-phone" placeholder="Например: 5551234" autocomplete="off" />
+                            </div>
+                            <div class="subscriber-form-actions">
+                                <button class="btn btn-primary" id="btn-add-subscriber">➕ Добавить в таблицу</button>
+                                <input type="text" id="subscribers-filter" class="input-inline" placeholder="🔍 Поиск по адресу / логину / номеру..." />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Таблица абонентов, сгруппированная по месяцам -->
+                <div id="subscribers-container">
+                    <div class="empty-state">Загрузка...</div>
                 </div>
             </div>
 
